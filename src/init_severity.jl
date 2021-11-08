@@ -1,21 +1,22 @@
 using DrWatson
 @quickactivate
 
-include("utilities.jl")
-using UMAP, Plots
-include("plotting.jl")
+using gvma
+
+using JsonGrinder
 using Statistics
 using Flux
 using Flux: throttle, @epochs
 using StatsBase
 using Base.Iterators: repeated
 
+using UMAP, Plots
 ENV["GKSwstype"] = "100"
 
 # load dataset
-dataset = Dataset("./data/samples.csv", "./data/schema.bson")
-dataset2 = Dataset3("./data/samples.csv", "./data/schema.bson")
-X2,type2,severity2 = dataset2[:]
+# dataset = Dataset("./data/samples.csv", "./data/schema.bson") - without strain
+dataset = Dataset("./data/samples_strain.csv", "./data/schema.bson")
+X,type,strain = dataset[:]
 
 # create data, labels
 labelnames = unique(dataset.targets)
