@@ -3,10 +3,11 @@ using DrWatson
 
 seed = parse(Int64, ARGS[1])
 ratio = parse(Float64, ARGS[2])
-α = parse(Float64, ARGS[3])
+α = parse(Float32, ARGS[3])
 
 # load data and necessary packages
 include(srcdir("init_strain.jl"))
+using Distances, Clustering
 
 # load the Jaccard matrix
 using BSON
@@ -25,7 +26,7 @@ y_oh_t = Flux.onehotbatch(ytest, labelnames)    # onehot test labels
 ################################################
 
 # loss with regulatization
-function loss_reg(x, yoh, x_nearest; α=1)
+function loss_reg(x, yoh, x_nearest, α)
     # cross entropy loss
     ce = Flux.logitcrossentropy(full_model(x), y_oh)
     # Jaccard regulatization
@@ -33,8 +34,12 @@ function loss_reg(x, yoh, x_nearest; α=1)
 
     return ce + α*reg
 end
-# loss without regularization
-loss(X, y_oh) = Flux.logitcrossentropy(full_model(X), y_oh)
+if α == 0
+    loss_reg(x, yoh, x_nearest) = Flux.logitcrossentropy(full_model(x), y_oh)
+else 
+    loss_reg(x, yoh, x_nearest) = loss_reg(x, yoh, x_nearest, α)
+end
+
 accuracy(x, y) = mean(labelnames[Flux.onecold(full_model(x))] .== y)
 
 Xnearest = ProductNode[]
@@ -56,69 +61,6 @@ for i in 1:n
     push!(Xnearest, x_nearest)
 end
 Xnearest = cat(Xnearest...)
-
-#############################################
-### Train and save without regularization ###
-#############################################
-
-# Parameters are predefined
-mdim, activation, aggregation, nlayers = 32, relu, meanmax_aggregation, 3
-opt = ADAM()
-
-# construct model
-full_model = classifier_constructor(Xtrain, mdim, activation, aggregation, nlayers, seed = seed)
-mill_model = full_model[1]
-
-# train the model
-@epochs 50 begin
-    Flux.train!(loss, Flux.params(full_model), repeated((Xtrain, y_oh), 10), opt)
-    println("train loss: ", loss(Xtrain, y_oh))
-    train_acc = accuracy(Xtrain, ytrain)
-    println("accuracy train: ", train_acc)
-    println("accuracy test: ", accuracy(Xtest, ytest))
-    if train_acc == 1
-        @info "Train accuracy reached 100%, stopped training."
-        break
-    end
-end
-
-# results
-train_acc = accuracy(Xtrain, ytrain)
-test_acc = accuracy(Xtest, ytest)
-
-# Clustering
-using Distances, Clustering
-
-enc_ts = mill_model(Xtest).data
-M_test = pairwise(Euclidean(), enc_ts)
-
-k = 10
-c = kmedoids(M_test, k)
-clabels = assignments(c)
-yenc = gvma.encode(ytest, labelnames)
-
-ri = randindex(clabels, yenc)
-cs = counts(clabels, yenc)
-vi = Clustering.varinfo(clabels, yenc)
-vm = vmeasure(clabels, yenc)
-mi = mutualinfo(clabels, yenc)
-
-# save results
-d0 = Dict(
-    :reg => false,
-    :train_acc => train_acc,
-    :test_acc => test_acc,
-    ((:ajd_randindex, :randindex, :mirkin, :hubert) .=> ri)...,
-    :counts => cs,
-    :varinfo => vi,
-    :vmeasure => vm,
-    :mutualinfo => mi,
-    :seed => seed,
-    :ratio => ratio,
-    :α => α
-)
-safesave(datadir("regularization", "reg=false_seed=$(seed)_ratio=$(ratio)_α=$(α).bson"), d0)
-
 
 ##########################################
 ### Train and save with regularization ###
@@ -166,7 +108,6 @@ mi = mutualinfo(clabels, yenc)
 
 # save results
 d1 = Dict(
-    :reg => true,
     :train_acc => train_acc,
     :test_acc => test_acc,
     ((:ajd_randindex, :randindex, :mirkin, :hubert) .=> ri)...,
@@ -178,4 +119,4 @@ d1 = Dict(
     :ratio => ratio,
     :α => α
 )
-safesave(datadir("regularization", "reg=true_seed=$(seed)_ratio=$(ratio)_α=$(α).bson"), d1)
+safesave(datadir("regularization", "α=$(α)_seed=$(seed)_ratio=$(ratio).bson"), d1)

@@ -3,6 +3,7 @@ name = "gvma"
 [deps]
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+ClusterLosses = "33103f26-f673-4add-b1b0-418ff5de9e40"
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 ConditionalDists = "c648c4dd-c1e0-49a6-84b9-144ae7fd2468"
