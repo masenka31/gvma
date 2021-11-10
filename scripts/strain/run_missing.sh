@@ -1,7 +1,7 @@
 #!/bin/bash
 # This runs parallel experiments over all datasets.
 # USAGE EXAMPLE
-# 	./run.sh 1 1 classes.txt
+# 	./run.sh 1 1 0.1 classes.txt
 # Run from this folder only.
 NUM_SAMPLES=$1	# how many repetitions
 NUM_CONC=$2		# number of concurrent tasks in the array job
