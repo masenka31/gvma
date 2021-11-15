@@ -1,0 +1,10 @@
+[deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+ClusterLosses = "33103f26-f673-4add-b1b0-418ff5de9e40"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
+DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"

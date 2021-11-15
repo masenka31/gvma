@@ -31,4 +31,4 @@ cdf_rounded = round.(cdf, digits=4)
 
 # print markdown table
 pretty_table(cdf_rounded[:, [2,1,3,4,5,6,7,8,9,10,11]],
-                tf = tf_markdown, nosubheader=true, body_hlines=collect(7:7:50))
+                tf = tf_markdown, nosubheader=true, body_hlines=collect(7:7:60))
