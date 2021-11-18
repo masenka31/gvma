@@ -12,7 +12,13 @@ using Dictionaries
 using Flux, Flux.Zygote
 using ClusterLosses
 using JSON
-# load data and necessary packages
+
+cd("..")
+
+#################
+### Functions ###
+#################
+
 function flatten_json(sample::Dict)
     isempty(keys(sample)) && return(Vector{Pair}())
     mapreduce(vcat, collect(keys(sample))) do k 
@@ -23,7 +29,6 @@ function flatten_json(sample::Dict)
         end
     end
 end
-
 function flatten_json(sample::Vector)
     isempty(keys(sample)) && return(Vector{Pair}())
     mapreduce(vcat, collect(keys(sample))) do k 
@@ -41,28 +46,6 @@ function jaccard_distance(d1::Vector, d2::Vector)
     un = length(union(d1,d2))
     return (un - int)/un
 end
-
-
-js1 = """{ "a" : {"b" : ["v", "p"], "c" : 1}}"""
-js2 = """{ "a" : {"b" : "vx", "c" : 2}}"""
-js3 = """{ "a" : {"b" : "v", "c" : 2}}"""
-js4 = """{ "a" : {"b" : "v", "c" : 2}}"""
-
-#sch = schema([js1,js2,js3,js4])
-
-j1, j2, j3, j4 = JSON.parse.([js1,js2,js3,js4])
-# prefixes = [("a", "b"), ("a", "c")]
-
-f1, f2, f3, f4 = map(j -> flatten_json(j), [j1,j2,j3,j4])
-fp1, fp2, fp3, fp4 = map(f -> map(j -> (js = j, pr = j[1:end-1]), f),  [f1, f2, f3, f4])
-fps = map(f -> Indices(map(j -> (js = j, pr = j[1:end-1]), f)),  [f1, f2, f3, f4])
-
-all_prefixes = mapreduce(f -> map(j -> j.pr, collect(f)), vcat, fps) |> unique
-
-prefix2int = Dict(reverse.(enumerate(all_prefixes)))
-w = ones(Float32, length(prefix2int))
-
-
 function jaccard_distance(j1, j2, prefix2int, w)
     int = Zygote.@ignore map(j -> prefix2int[j.pr],intersect(j1,j2))
     un  = Zygote.@ignore map(j -> prefix2int[j.pr],union(j1,j2))
@@ -70,7 +53,6 @@ function jaccard_distance(j1, j2, prefix2int, w)
     isempty(int) && return(one(eltype(w)))
     one(eltype(w)) - sum(w[int]) / sum(w[un])
 end
-
 function jaccard_distance(j1::Indices, j2::Indices, prefix2int, w)
     int = Zygote.@ignore map(j -> prefix2int[j.pr], collect(intersect(j1,j2)))
     un  = Zygote.@ignore map(j -> prefix2int[j.pr], collect(union(j1,j2)))
@@ -96,6 +78,7 @@ function jpairwise(fps, prefix2int, w)
     end
     copy(d)
 end
+
 function _jpairwise(fps, prefix2int, w)
     d = zeros(Float32, length(fps), length(fps))
     for i in 2:length(fps)
@@ -108,37 +91,6 @@ function _jpairwise(fps, prefix2int, w)
     d
 end
 
-labels = [0,0,1,1]
-gradient(w -> sum(jpairwise(fps, prefix2int, w)), w)[1]
-gradient(w) do w 
-    loss(Triplet(), jpairwise(fps, prefix2int, w), labels)
-end[1]
-
-
-ps = Flux.params([w])
-opt = ADAM()
-
-function prepare_minibatch()
-    fps, labels
-end
-
-mb_provider = IterTools.repeatedly(prepare_minibatch, 100)
-
-loss(Triplet(), jpairwise(fps, prefix2int, σ.(w) .+ 1f-6), labels)
-Flux.train!(ps, mb_provider, opt) do fps, labels
-    loss(Triplet(), jpairwise(fps, prefix2int, σ.(w) .+ 1f-6), labels)
-end
-loss(Triplet(), jpairwise(fps, prefix2int, σ.(w) .+ 1f-6), labels)
-
-### full data ###
-using DrWatson
-using DataFrames, CSV
-df = CSV.read("..\\..\\data\\samples_strain.csv", DataFrame)
-
-files = Vector(df.sha256)
-y = Vector(df.strain)
-labelnames = unique(y)
-
 function encode(labels, labelnames)
     num_labels = ones(Int, length(labels))
     for i in 1:length(labels)
@@ -148,38 +100,89 @@ function encode(labels, labelnames)
     return num_labels
 end
 
-labels = encode(y, labelnames)
-samples = map(f -> joinpath("C:\\Users\\masen\\Desktop\\gvma\\data\\samples_strain", "$f.json"), files)
+#################
+### GVMA data ###
+#################
 
-read_json(file) = JSON.parse(read(file, String))
-#files = datadir.("samples_strain", dataset.samples .* ".json");
-jsons = read_json.(samples);
-jsons_flatten = flatten_json.(jsons);
+using DrWatson
+using DataFrames, CSV
 
-fps = map(f -> map(j -> (js = j, pr = j[1:end-1]), f),  jsons_flatten)
-# fps = map(f -> Indices(map(j -> (js = j, pr = j[1:end-1]), f)),  jsons_flatten)
-all_prefixes = mapreduce(f -> map(j -> j.pr, collect(f)), vcat, fps) |> unique
+function load_gvma_jaccard()
+    # load data
+    df = CSV.read("data\\samples_strain.csv", DataFrame)
+    files = Vector(df.sha256)
+    y = Vector(df.strain)
+    labelnames = unique(y)
 
-prefix2int = Dict(reverse.(enumerate(all_prefixes)))
+    labels = encode(y, labelnames)
+    samples = map(f -> joinpath("data\\samples_strain", "$f.json"), files)
+
+    read_json(file) = JSON.parse(read(file, String))
+    jsons = read_json.(samples);
+    jsons_flatten = flatten_json.(jsons);
+
+    # create flattened jsons and prefixes
+    fps = map(f -> map(j -> (js = j, pr = j[1:end-1]), f),  jsons_flatten)
+    # fps = map(f -> Indices(map(j -> (js = j, pr = j[1:end-1]), f)),  jsons_flatten)
+    all_prefixes = mapreduce(f -> map(j -> j.pr, collect(f)), vcat, fps) |> unique
+    prefix2int = Dict(reverse.(enumerate(all_prefixes)))
+
+    return fps, prefix2int, labels
+end
+
+using Random, StatsBase
+
+"""
+    train_test_split(X, y; ratio=0.5, seed=nothing)
+
+Classic train/test split with given ratio.
+"""
+function train_test_split(X, y; ratio=0.5, seed=nothing)
+    n = length(y)
+    n1 = Int(ratio*n)
+
+    # set seed
+    (seed == nothing) ? nothing : Random.seed!(seed)
+
+    _ix = sample(1:n, n; replace=false)
+    train_ix, test_ix = _ix[1:n1], _ix[n1+1:end]
+
+    # reset seed
+	(seed !== nothing) ? Random.seed!() : nothing
+
+    Xtrain, ytrain = X[train_ix], y[train_ix]
+    Xtest, ytest = X[test_ix], y[test_ix]
+
+    return (Xtrain, ytrain), (Xtest, ytest)
+end
+
+fps, prefix2int, labels = load_gvma_jaccard();
+(fps_train, fps_test), (l_tr, l_test) = train_test_split(fps, labels; ratio=0.2, seed=1);
+
+
+# initialize parameters
 w = ones(Float32, length(prefix2int))
 
-@time jpairwise(fps[1:1000], prefix2int, w)
+@time jpairwise(fps[1:100], prefix2int, w);
+@time _jpairwise(fps[1:100], prefix2int, w);
 
-ps = Flux.params([w])
-opt = ADAM()
-
+# batches
 batchsize = 128
 function prepare_minibatch()
     ix = rand(1:length(labels), batchsize)
     fps[ix], labels[ix]
 end
-
 mb_provider = IterTools.repeatedly(prepare_minibatch, 10)
-
 batch = prepare_minibatch();
 
+# loss function
 lossf(x, y) = loss(Triplet(), jpairwise(x, prefix2int, σ.(w) .+ 1f-6), y)
 
+# Flux parameters, optimizer
+ps = Flux.params([w])
+opt = ADAM()
+
+# try training - does the loss decrease?
 lossf(batch...)
 Flux.train!(ps, mb_provider, opt) do x, y
     loss(Triplet(), jpairwise(x, prefix2int, σ.(w) .+ 1f-6), y)
@@ -188,6 +191,7 @@ lossf(batch...)
 
 using Flux: @epochs
 
+# train for given number of epochs
 @epochs 10 begin
     Flux.train!(ps, mb_provider, opt) do x, y
         loss(Triplet(), jpairwise(x, prefix2int, σ.(w) .+ 1f-6), y)
@@ -195,4 +199,6 @@ using Flux: @epochs
     @show lossf(batch...)
 end
 
+# calculate the resulting distance matrix
 L_full_weighted = jpairwise(fps, prefix2int, σ.(w) .+ 1f-6)
+safesave("weigted_matrix.bson", Dict(:L => L_full_weighted))
