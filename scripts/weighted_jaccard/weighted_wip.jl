@@ -156,21 +156,21 @@ function train_test_split(X, y; ratio=0.5, seed=nothing)
     return (Xtrain, ytrain), (Xtest, ytest)
 end
 
+# load data and split
 fps, prefix2int, labels = load_gvma_jaccard();
-(fps_train, fps_test), (l_tr, l_test) = train_test_split(fps, labels; ratio=0.2, seed=1);
-
+(fps_train, l_tr), (fps_test, l_test) = train_test_split(fps, labels; ratio=0.2, seed=1);
 
 # initialize parameters
 w = ones(Float32, length(prefix2int))
 
-@time jpairwise(fps[1:100], prefix2int, w);
-@time _jpairwise(fps[1:100], prefix2int, w);
+# @time jpairwise(fps[1:100], prefix2int, w);
+# @time _jpairwise(fps[1:100], prefix2int, w);
 
 # batches
 batchsize = 128
 function prepare_minibatch()
-    ix = rand(1:length(labels), batchsize)
-    fps[ix], labels[ix]
+    ix = rand(1:length(l_tr), batchsize)
+    fps_train[ix], l_tr[ix]
 end
 mb_provider = IterTools.repeatedly(prepare_minibatch, 10)
 batch = prepare_minibatch();
