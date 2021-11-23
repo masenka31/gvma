@@ -107,6 +107,34 @@ function train_test_split_reg(X, y, L_full::AbstractMatrix; ratio=0.5, seed=noth
 
     return (Xtrain, ytrain), (Xtest, ytest), (dm_train, dm_test)
 end
+function train_test_split_reg(X, y, L_full::AbstractMatrix, missing_class::String; ratio=0.5, seed=nothing)
+    b = y .!= missing_class
+    Xm, ym = X[b], y[b]
+    Xc, yc = X[.!b], y[.!b]
+
+    dm = L_full[b, b]
+    dc = L_full[.!b, .!b]
+    
+    n = length(ym)
+    n1 = Int(ratio*n)
+
+    # set seed
+    (seed == nothing) ? nothing : Random.seed!(seed)
+
+    _ix = sample(1:n, n; replace=false)
+    train_ix, test_ix = _ix[1:n1], _ix[n1+1:end]
+
+    # reset seed
+	(seed !== nothing) ? Random.seed!() : nothing
+
+    Xtrain, ytrain = Xm[train_ix], ym[train_ix]
+    Xtest, ytest = cat(Xm[test_ix], Xc), vcat(ym[test_ix], yc)
+
+    dm_train = dm[train_ix, train_ix]
+    # we do not need a test distance matrix
+
+    return (Xtrain, ytrain), (Xtest, ytest), (dm_train, )
+end
 
 """
     train_test_split_ix(X, y, L_full::AbstractMatrix; ratio=0.5, seed=nothing)

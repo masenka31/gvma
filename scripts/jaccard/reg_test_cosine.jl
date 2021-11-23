@@ -30,7 +30,9 @@ function loss_reg(x, yoh, x_nearest, α)
     # cross entropy loss
     ce = Flux.logitcrossentropy(full_model(x), yoh)
     # Jaccard regulatization
-    reg = Flux.mse(mill_model(x).data, mill_model(x_nearest).data)
+    a, b = mill_model(x).data, mill_model(x_nearest).data
+    # reg = dot(a,b) / norm(a) / norm(b)
+    reg = mean(map((ac, bc) -> 1 - dot(ac, bc) / norm(ac) / norm(bc), eachcol(a), eachcol(b)))
 
     return ce + α*reg
 end
@@ -62,6 +64,14 @@ for i in 1:n
 end
 Xnearest = cat(Xnearest...)
 
+x = Xtrain[1]
+yoh = y_oh[:, 1]
+x_nearest = Xnearest[1]
+
+x = Xtrain[1:10]
+yoh = y_oh[:, 1:10]
+x_nearest = Xnearest[1:10]
+
 ##########################################
 ### Train and save with regularization ###
 ##########################################
@@ -73,6 +83,15 @@ opt = ADAM()
 # construct model
 full_model = classifier_constructor(Xtrain, mdim, activation, aggregation, nlayers, seed = seed)
 mill_model = full_model[1]
+
+function minibatch(Xtrain, y_oh, Xnearest; batchsize=64)
+    ix = sample(1:nobs(Xtrain), batchsize)
+    x = Xtrain[ix]
+    y = y_oh[:, ix]
+    xn = Xnearest[ix]
+    return x, y, xn
+end
+batch = minibatch(Xtrain, y_oh, Xnearest)
 
 # train the model
 @epochs 50 begin
@@ -93,7 +112,9 @@ test_acc = accuracy(Xtest, ytest)
 
 # Clustering
 enc_ts = mill_model(Xtest).data
-M_test = pairwise(Euclidean(), enc_ts)
+# since optimizing cosine distance, calculate cosine pairwise
+M_test = pairwise(CosineDist(), enc_ts)
+# M_test = pairwise(Euclidean(), enc_ts)
 
 k = 10
 c = kmedoids(M_test, k)
@@ -119,4 +140,4 @@ d1 = Dict(
     :ratio => ratio,
     :α => α
 )
-safesave(datadir("regularization", "α=$(α)_seed=$(seed)_ratio=$(ratio).bson"), d1)
+safesave(datadir("regularization_cosine", "α=$(α)_seed=$(seed)_ratio=$(ratio).bson"), d1)

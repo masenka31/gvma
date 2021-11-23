@@ -4,6 +4,7 @@ using DrWatson
 seed = parse(Int64, ARGS[1])
 ratio = parse(Float64, ARGS[2])
 α = parse(Float32, ARGS[3])
+missing_class = ARGS[4]
 
 # load data and necessary packages
 include(srcdir("init_strain.jl"))
@@ -17,7 +18,7 @@ L = BSON.load(datadir("jaccard_matrix_strain.bson"))[:L]
 L_full = Symmetric(L)
 
 # divide to train/test data with the Jaccard matrix properly transformed, too
-(Xtrain, ytrain), (Xtest, ytest), (dm_train, dm_test) = train_test_split_reg(X, y, L_full; ratio=ratio, seed=seed)
+(Xtrain, ytrain), (Xtest, ytest), (dm_train, ) = train_test_split_reg(X, y, L_full, missing_class; ratio=ratio, seed=seed)
 y_oh = Flux.onehotbatch(ytrain, labelnames)     # onehot train labels
 y_oh_t = Flux.onehotbatch(ytest, labelnames)    # onehot test labels
 
@@ -28,14 +29,14 @@ y_oh_t = Flux.onehotbatch(ytest, labelnames)    # onehot test labels
 # loss with regulatization
 function loss_reg(x, yoh, x_nearest, α)
     # cross entropy loss
-    ce = Flux.logitcrossentropy(full_model(x), yoh)
+    ce = Flux.logitcrossentropy(full_model(x), y_oh)
     # Jaccard regulatization
     reg = Flux.mse(mill_model(x).data, mill_model(x_nearest).data)
 
     return ce + α*reg
 end
 if α == 0
-    loss_reg(x, yoh, x_nearest) = Flux.logitcrossentropy(full_model(x), yoh)
+    loss_reg(x, yoh, x_nearest) = Flux.logitcrossentropy(full_model(x), y_oh)
 else 
     loss_reg(x, yoh, x_nearest) = loss_reg(x, yoh, x_nearest, α)
 end
@@ -95,7 +96,7 @@ test_acc = accuracy(Xtest, ytest)
 enc_ts = mill_model(Xtest).data
 M_test = pairwise(Euclidean(), enc_ts)
 
-k = 10
+k = 15
 c = kmedoids(M_test, k)
 clabels = assignments(c)
 yenc = gvma.encode(ytest, labelnames)
@@ -117,6 +118,7 @@ d1 = Dict(
     :mutualinfo => mi,
     :seed => seed,
     :ratio => ratio,
-    :α => α
+    :α => α,
+    :class => missing_class
 )
-safesave(datadir("regularization", "α=$(α)_seed=$(seed)_ratio=$(ratio).bson"), d1)
+safesave(datadir("regularization_missing", missing_class, "α=$(α)_seed=$(seed)_ratio=$(ratio).bson"), d1)

@@ -16,16 +16,22 @@ using JSON
 using DataFrames, CSV
 using Random, StatsBase
 
+# include the utility functions
 include("src.jl")
 
 cd("../..")
 if pwd()[end-3:end] != "gvma"
     error("Change to the right directory!")
+else
+    @info "You are in the right directory, good luck ;)"
 end
 
 #################
 ### GVMA data ###
 #################
+
+seed = parse(Int64, ARGS[1])
+ratio = parse(Float64, ARGS[1])
 
 # load data and split
 fps, prefix2int, labels = load_gvma_jaccard();
@@ -33,9 +39,6 @@ fps, prefix2int, labels = load_gvma_jaccard();
 
 # initialize parameters
 w = ones(Float32, length(prefix2int))
-
-# @time jpairwise(fps[1:100], prefix2int, w);
-# @time _jpairwise(fps[1:100], prefix2int, w);
 
 # batches
 batchsize = 128
@@ -71,9 +74,13 @@ using Flux: @epochs
 end
 
 # save trained weights
-safesave("data/weighted_jaccard/weights.bson", Dict(:w => w))
+safesave("data/weighted_jaccard/weights_ratio=$(ratio)_seed=$seed.bson", Dict(:w => w))
 
 # calculate the resulting distance matrix
+# how many threads are available?
+@info "no of threads: " Threads.nthreads()
+# can I calculate the distance matrix outside of training the weights?
+# I should probably test whether the weights end up similar for different seeds...
 w = BSON.load("data/weighted_jaccard/weights.bson")[:w]
 @time L_full_weighted = _jpairwise(fps, prefix2int, σ.(w) .+ 1f-6)
 safesave("data/weighted_jaccard/weigted_matrix.bson", Dict(:L => L_full_weighted))
