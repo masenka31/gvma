@@ -1,13 +1,14 @@
 #!/bin/bash
 # This runs parallel experiments over 10 seeds.
 # USAGE EXAMPLE
-# 	./run_reg_missing.sh 1 1 0.1 Lamer
+# 	./run_reg_missing.sh 1 1 0.1 Lamer binary_run
 # Run from this folder only.
 NUM_SAMPLES=$1	# how many repetitions
 NUM_CONC=$2		# number of concurrent tasks in the array job
 DATASET_FILE=$3	# file with dataset list
+SCRIPT=$4
 
-LOG_DIR="${HOME}/logs/gvma"
+LOG_DIR="${HOME}/logs/gvma/missing"
 
 if [ ! -d "$LOG_DIR" ]; then
 	mkdir $LOG_DIR
@@ -20,15 +21,10 @@ while read d; do
         do
             for seed in {1..10}
             do
-
-                    # submit to slurm
-                    sbatch \
-                    --array=1-${NUM_SAMPLES}%${NUM_CONC} \
-                    --output="${LOG_DIR}/alpha=${alpha}_seed=${seed}_ratio=${ratio}-%A_%a.out" \
-                    ./reg_missing.sh ${seed} ${ratio} ${alpha} $d
-
-                
-
+                # submit to slurm
+                sbatch \
+                --output="${LOG_DIR}/alpha=${alpha}_seed=${seed}_ratio=${ratio}-%A_%a.out" \
+                ./${SCRIPT}.sh ${seed} ${ratio} ${alpha} $d  
             done
         done
     done

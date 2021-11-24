@@ -12,7 +12,7 @@ function scatter2!(X, x=1, y=2; kwargs...)
 end
 
 # encode labels to numbers
-function encode(labels, labelnames)
+function encode(labels::Vector, labelnames::Vector)
     num_labels = ones(Int, length(labels))
     for i in 1:length(labels)
         v = findall(x -> x == labels[i], labelnames)
@@ -20,3 +20,6 @@ function encode(labels, labelnames)
     end
     return num_labels
 end
+
+# encode labels to binary numbers
+encode(labels::Vector, missing_class::String) = Int.(labels .== missing_class)

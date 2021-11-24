@@ -85,3 +85,19 @@ for ratio in [0.01, 0.05, 0.1, 0.2, 0.5]
     end
     wsave(plotsdir("strain_knn", "k-accuracy_ntr=$(8000*ratio)_01.png"), plt)
 end
+
+################################################
+### Simple kNN using Jaccard distance matrix ###
+################################################
+
+# the new version of flatten_json
+L = BSON.load(datadir("jaccard_matrix_new_flatten.bson"))[:L]
+# create full matrix
+L_full = Symmetric(L)
+
+acc = Float32[]
+for seed in 1:20
+    (ytrain, ytest), distance_matrix = train_test_split(y, L_full; ratio=0.2, seed = seed)
+    pred = dist_knn(1, distance_matrix, ytrain, ytest);
+    push!(acc, Float32(pred[2]))
+end

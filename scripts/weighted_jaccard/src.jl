@@ -190,7 +190,7 @@ function _jpairwise(fps, prefix2int, w)
             d[i,j] = v
         end
     end
-    Symmetric(d)
+    collect(Symmetric(d))
 end
 
 """

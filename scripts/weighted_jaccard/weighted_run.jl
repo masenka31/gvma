@@ -7,6 +7,9 @@ Do
 to activate this environment.
 """
 
+using Pkg
+Pkg.activate(".")
+
 using IterTools
 using Dictionaries
 using Flux, Flux.Zygote
@@ -31,7 +34,7 @@ end
 #################
 
 seed = parse(Int64, ARGS[1])
-ratio = parse(Float64, ARGS[1])
+ratio = parse(Float64, ARGS[2])
 
 # load data and split
 fps, prefix2int, labels = load_gvma_jaccard();
@@ -66,7 +69,8 @@ lossf(batch...)
 using Flux: @epochs
 
 # train for given number of epochs
-@epochs 100 begin
+# takes approx 2200 seconds
+@time @epochs 100 begin
     Flux.train!(ps, mb_provider, opt) do x, y
         loss(Triplet(), jpairwise(x, prefix2int, σ.(w) .+ 1f-6), y)
     end
@@ -74,13 +78,5 @@ using Flux: @epochs
 end
 
 # save trained weights
-safesave("data/weighted_jaccard/weights_ratio=$(ratio)_seed=$seed.bson", Dict(:w => w))
-
-# calculate the resulting distance matrix
-# how many threads are available?
-@info "no of threads: " Threads.nthreads()
-# can I calculate the distance matrix outside of training the weights?
-# I should probably test whether the weights end up similar for different seeds...
-w = BSON.load("data/weighted_jaccard/weights.bson")[:w]
-@time L_full_weighted = _jpairwise(fps, prefix2int, σ.(w) .+ 1f-6)
-safesave("data/weighted_jaccard/weigted_matrix.bson", Dict(:L => L_full_weighted))
+using DrWatson
+safesave("data/weighted_jaccard/weights_ratio=$(ratio)_seed=$seed.bson", Dict(:w => w, :ratio => ratio, :seed => seed))
