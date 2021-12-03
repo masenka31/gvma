@@ -72,7 +72,7 @@ Returns distance matrix is of size (# test data, # train data).
 """
 function train_test_split(y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
     n = size(L_full,1)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -178,4 +178,9 @@ function train_test_split_ix(X::ProductNode, y::Vector, L_full::AbstractMatrix; 
     dm_test = L_full[test_ix, train_ix]
 
     return (Xtrain, ytrain), (Xtest, ytest), (dm_train, dm_test), (train_ix, test_ix)
+end
+
+function train_test_split(X::ProductNode, y::Vector, Xs::ProductNode, ys::Vector; ratio=0.5, seed=nothing)
+    (Xtrain, ytrain), (Xtest, ytest) = train_test_split(X, y; ratio=ratio, seed = seed)
+    return (Xtrain, ytrain), (cat(Xtest, Xs), vcat(ytest, ys))
 end

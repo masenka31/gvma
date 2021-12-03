@@ -104,9 +104,18 @@ function comb(results, i)
     return hcat(cdf, DataFrame(:class => repeat([df[1,:missing_class]], size(cdf,2))))
 end
 
+
+res = BSON.load(datadir("results_dataframes", "missing_clustering_jacc_reg.bson"))
+results = res[:results]
+
 combined_results = map(i -> comb(results, i), 1:10)
 comb_mater = vcat(combined_results...)
 
+# one full dataframe
+fdf = filter(:ratio => r -> r == 0.2, comb_mater)
+pretty_table(fdf[:, Not([:ratio, :k])], tf = tf_markdown, nosubheader=true, crop=:none, hlines=collect(4:3:30))
+
+# smaller tables for each alpha
 f = filter(:α => a -> a == 0.1f0, filter(:ratio => r -> r == 0.2, comb_mater))
 pretty_table(f, tf = tf_markdown, nosubheader=true)
 
@@ -118,3 +127,38 @@ pretty_table(f, tf = tf_markdown, nosubheader=true)
 
 map(i -> pretty_table(comb(results, i), crop=:none, nosubheader=true), 1:10)
 map(i -> pretty_table(comb(results, i), tf = tf_markdown, crop=:none, nosubheader=true), 1:10)
+
+###############################################
+############ using domain knowledge
+###############################################
+
+# get the latent encoding
+enc = mill_model(X).data
+# calculate pairwise Euclidean distance
+M = pairwise(Euclidean(), enc)
+
+# perform k-medoids clustering
+k = 15
+c = kmedoids(M, k)
+clabels = assignments(c)
+y1 = encode(ytrain, missing_class) .- 1
+y2 = encode(ytest, missing_class)
+y_binary = vcat(y1,y2)
+
+# get the counts for clusters and labels
+cs = counts(clabels, y_binary)
+cs2 = counts(clabels, encode(y, labelnames))
+
+# get "purity" percentages of clusters with missing class
+s = sum(cs, dims=2)
+miss_cluster_ix = findall(x -> x != 0, cs[:, 2])
+percentages = cs[miss_cluster_ix, 2] ./ s[miss_cluster_ix]
+
+# get confusion matrix for binary classification
+new_bit = cs[:,1] .< cs[:,2]
+TN, FN = Tuple(sum(cs[.!new_bit, :], dims=1)) # gives TN, FN
+FP, TP = Tuple(sum(cs[new_bit, :], dims=1))   # gives FP, TP
+CM = ConfusionMatrix(TP, FP, FN, TN)
+
+# create a report
+report(CM)

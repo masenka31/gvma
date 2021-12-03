@@ -1,6 +1,8 @@
 using Pkg
 Pkg.activate(".")
 
+using DrWatson
+
 using IterTools
 using Dictionaries
 using Flux, Flux.Zygote

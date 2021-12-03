@@ -62,7 +62,7 @@ mill_model = full_model[1]
 
 # train the model
 start_time = time()
-@epochs 50 begin
+@epochs 300 begin
     Flux.train!(loss_reg, Flux.params(full_model), repeated((Xtrain, y_oh, labels), 10), opt)
     println("train loss: ", loss_reg(Xtrain, y_oh, labels))
     train_acc = accuracy(Xtrain, ytrain)
@@ -72,7 +72,7 @@ start_time = time()
         @info "Train accuracy reached 100%, stopped training."
         break
     end
-    if time() - start_time > 60*60*3.6
+    if time() - start_time > 60*60*3
         @info "Training time exceeded, stopped training."
         break
     end
@@ -81,5 +81,7 @@ end
 train_acc = accuracy(Xtrain, ytrain)
 test_acc = accuracy(Xt, yt)
 
-d = Dict(Symbol.([:ratio, :seed, :α, :missing_class, :model, :train_acc, :test_acc]) .=> [ratio, seed, α, missing_class, full_model, train_acc, test_acc])
-safesave(datadir("models", "triplet_missing", savename("model", d, "bson")), d)
+
+d = Dict(Symbol.([:ratio, :seed, :α, :missing_class, :train_acc, :test_acc]) .=> [ratio, seed, α, missing_class, train_acc, test_acc])
+dm = Dict(Symbol.([:ratio, :seed, :α, :missing_class, :train_acc, :test_acc, :full_model]) .=> [ratio, seed, α, missing_class, train_acc, test_acc, full_model])
+safesave(datadir("models", "triplet_missing", savename("model", d, "bson")), dm)

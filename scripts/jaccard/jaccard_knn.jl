@@ -8,23 +8,11 @@ using UMAP
 using BSON
 using Random
 
+using gvma: jaccard_distance, flatten_json
+
 files = datadir.("samples_strain", dataset.samples .* ".json");
 jsons = gvma.read_json.(files);
 jsons_flatten = flatten_json.(jsons);
-
-"""
-    jaccard_distance(d1::Vector, d2::Vector)
-
-Calculate the Jaccard distance between two vectors
-as number of points in intersetion divided by number
-of points in the union: d = # intersection / # union.
-"""
-function jaccard_distance(d1::Vector, d2::Vector)
-    #dif = length(setdiff(d1,d2))
-    int = length(intersect(d1,d2))
-    un = length(union(d1,d2))
-    return (un - int)/un
-end
 
 # calculate the Jaccard distance for each pair
 # the matrix is symmetric and with zeros on the diagonal
@@ -92,12 +80,104 @@ end
 
 # the new version of flatten_json
 L = BSON.load(datadir("jaccard_matrix_new_flatten.bson"))[:L]
-# create full matrix
-L_full = Symmetric(L)
 
-acc = Float32[]
-for seed in 1:20
-    (ytrain, ytest), distance_matrix = train_test_split(y, L_full; ratio=0.2, seed = seed)
-    pred = dist_knn(1, distance_matrix, ytrain, ytest);
-    push!(acc, Float32(pred[2]))
+mean_acc = Float32[]
+for ratio in [0.01, 0.05, 0.1, 0.2, 0.5, 0.8]
+    acc = Float32[]
+    for seed in 1:20
+        (ytrain, ytest), distance_matrix = train_test_split(y, L; ratio=ratio, seed = seed)
+        pred = dist_knn(1, distance_matrix, ytrain, ytest);
+        push!(acc, Float32(pred[2]))
+    end
+    push!(mean_acc, mean(acc))
 end
+
+#############################################
+### Clustering on Jaccard distance matrix ###
+#############################################
+
+using Clustering
+using DataFrames
+using gvma: encode
+ynum = encode(y, labelnames)
+
+c = kmedoids(L, 10)
+clabels = assignments(c)
+ri, adj_ri = randindex(c, ynum)[1:2]
+counts(c, ynum)
+
+# try how well is missing class separated
+# for all classes
+include(srcdir("confusion_matrix.jl"))
+
+dfs = map(c -> evaluate_jaccard(y, c, L; k = 12), String.(labelnames));
+df = vcat(dfs...)
+
+###########################################
+### Jaccard distance for small clusters ###
+###########################################
+
+# how to not calculate what we already know?
+using BSON
+L = BSON.load(datadir("jaccard_matrix_new_flatten.bson"))[:L]
+
+include(srcdir("init_strain.jl"))
+dataset = Dataset(datadir("samples_strain.csv"), datadir("schema.bson"), datadir("samples_strain"))
+dataset_s = Dataset(datadir("samples_small.csv"), datadir("schema.bson"), datadir("samples_small"))
+
+files = datadir.("samples_strain", dataset.samples .* ".json");
+jsons = gvma.read_json.(files);
+fps_old = flatten_json.(jsons);
+
+files = datadir.("samples_small", dataset_s.samples .* ".json");
+jsons = gvma.read_json.(files);
+fps_new = flatten_json.(jsons);
+
+fps = vcat(fps_new, fps_old)
+
+n = length(y)
+m = length(y) + length(ys)
+new_L_init = zeros(Float64, m, m)
+new_L_init[1:8000, 1:8000] .= L
+using LinearAlgebra
+newL = UpperTriangular(new_L_init)
+
+using gvma: jaccard_distance
+
+Threads.@threads for i in 1:m
+    for j in i+1:m
+        v = jaccard_distance(fps[i], fps[j])
+        newL[i, j] = v
+    end
+end
+L = collect(Symmetric(newL))
+
+safesave(datadir("jaccard_matrix_all.bson"), Dict(:L => newL))
+L = BSON.load(datadir("jaccard_matrix_all.bson"))[:L]
+
+Xf, yf = cat(X, Xs), vcat(y, ys)
+
+acc = zeros(Float64, 15, 10)
+for seed in 1:10
+    (ytrain, ytest), dm = train_test_split(yf, L; ratio = 0.2, seed = seed)
+    a = map(k -> dist_knn(k, dm, ytrain, ytest)[2], 1:15)
+    acc[:, seed] = a
+end
+
+acc_mean = mean(acc, dims=2)
+df = DataFrame(:k => collect(1:15), :accuracy => acc_mean[:, 1])
+
+# binary knn classification - large vs small clusters
+ybinary = .!map(i -> any(i .== labelnames), yf)
+
+acc_binary = zeros(Float64, 15, 10)
+for seed in 1:10
+    (ytrain, ytest), dm = train_test_split(ybinary |> Vector, L; ratio = 0.2, seed = seed)
+    a = map(k -> dist_knn(k, dm, ytrain, ytest)[2], 1:15)
+    acc_binary[:, seed] = a
+end
+
+acc_mean_binary = mean(acc_binary, dims=2)
+df.binary_accuracy = acc_mean_binary[:, 1]
+
+pretty_table(df, tf = tf_markdown, nosubheader=true, crop=:none)

@@ -19,10 +19,11 @@ end
 
 function Dataset(
     file_csv::String,
-    file_schema::String;
-    dir = joinpath(dirname(file_csv), "samples_strain")
+    file_schema::String,
+    folder::String
 )
 
+    dir = joinpath(dirname(file_csv), folder)
     df = CSV.read(file_csv, DataFrame)
     schema = BSON.load(file_schema)[:schema]
     extractor = suggestextractor(schema)
