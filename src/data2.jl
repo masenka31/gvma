@@ -19,13 +19,13 @@ function random_ix(n::Int, seed=nothing)
 end
 
 """
-    train_test_split(X::ProductNode, y; ratio=0.5, seed=nothing)
+    train_test_split(X::AbstractNode, y; ratio=0.5, seed=nothing)
 
 Classic train/test split with given ratio.
 """
-function train_test_split(X::ProductNode, y::Vector; ratio=0.5, seed=nothing)
+function train_test_split(X::AbstractNode, y::Vector; ratio=0.5, seed=nothing)
     n = length(y)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -41,14 +41,14 @@ function train_test_split(X::ProductNode, y::Vector; ratio=0.5, seed=nothing)
 end
 
 """
-    train_test_split(X::ProductNode, y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
+    train_test_split(X::AbstractNode, y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
 
 Train/test split for both data and distance matrix (later used for kNN).
 Distance matrix is of size (# test data, # train data).
 """
-function train_test_split(X::ProductNode, y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
+function train_test_split(X::AbstractNode, y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
     n = length(y)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -88,18 +88,36 @@ function train_test_split(y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=not
 end
 
 """
-    train_test_split(X::ProductNode, y::Vector, missing_class::String; ratio=0.5, seed=nothing)
+    train_test_split(X::AbstractNode, y::Vector, missing_class::Union{String, Int}; ratio=0.5, seed=nothing)
 
 Train/test split for missing class in training data. Chosen missing class
 is not put in training data, only in test data.
 """
-function train_test_split(X::ProductNode, y::Vector, missing_class::String; ratio=0.5, seed=nothing)
+function train_test_split(X::AbstractNode, y::Vector, missing_class::Union{String, Int}; ratio=0.5, seed=nothing)
     b = y .!= missing_class
     Xm, ym = X[b], y[b]
     Xc, yc = X[.!b], y[.!b]
     
     n = length(ym)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
+
+    # get the indexes
+    _ix = random_ix(n, seed)
+    train_ix, test_ix = _ix[1:n1], _ix[n1+1:end]
+
+    Xtrain, ytrain = Xm[train_ix], ym[train_ix]
+    Xtest, ytest = cat(Xm[test_ix], Xc), vcat(ym[test_ix], yc)
+
+    return (Xtrain, ytrain), (Xtest, ytest)
+end
+function train_test_split(X::AbstractNode, y::Vector, missing_class::Vector{T}; ratio=0.5, seed=nothing) where T<:Union{String, Int}
+    # b = y .!= missing_class
+    b = map(yi -> !any(yi .== missing_class), y)
+    Xm, ym = X[b], y[b]
+    Xc, yc = X[.!b], y[.!b]
+    
+    n = length(ym)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -119,7 +137,7 @@ Distance matrix is of size (# test data, # train data).
 """
 function train_test_split_reg(X::ProductNode, y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
     n = length(y)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -133,7 +151,7 @@ function train_test_split_reg(X::ProductNode, y::Vector, L_full::AbstractMatrix;
 
     return (Xtrain, ytrain), (Xtest, ytest), (dm_train, dm_test)
 end
-function train_test_split_reg(X::ProductNode, y::Vector, L_full::AbstractMatrix, missing_class::String; ratio=0.5, seed=nothing)
+function train_test_split_reg(X::ProductNode, y::Vector, L_full::AbstractMatrix, missing_class::Union{String, Int}; ratio=0.5, seed=nothing)
     b = y .!= missing_class
     Xm, ym = X[b], y[b]
     Xc, yc = X[.!b], y[.!b]
@@ -142,7 +160,7 @@ function train_test_split_reg(X::ProductNode, y::Vector, L_full::AbstractMatrix,
     dc = L_full[.!b, .!b]
     
     n = length(ym)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -165,7 +183,7 @@ test indexes.
 """
 function train_test_split_ix(X::ProductNode, y::Vector, L_full::AbstractMatrix; ratio=0.5, seed=nothing)
     n = length(y)
-    n1 = Int(ratio*n)
+    n1 = round(Int, ratio*n)
 
     # get the indexes
     _ix = random_ix(n, seed)
@@ -180,7 +198,7 @@ function train_test_split_ix(X::ProductNode, y::Vector, L_full::AbstractMatrix; 
     return (Xtrain, ytrain), (Xtest, ytest), (dm_train, dm_test), (train_ix, test_ix)
 end
 
-function train_test_split(X::ProductNode, y::Vector, Xs::ProductNode, ys::Vector; ratio=0.5, seed=nothing)
+function train_test_split(X::AbstractNode, y::Vector, Xs::ProductNode, ys::Vector; ratio=0.5, seed=nothing)
     (Xtrain, ytrain), (Xtest, ytest) = train_test_split(X, y; ratio=ratio, seed = seed)
     return (Xtrain, ytrain), (cat(Xtest, Xs), vcat(ytest, ys))
 end

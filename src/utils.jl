@@ -2,13 +2,13 @@ function scatter2(X, x=1, y=2; kwargs...)
     if size(X,1) > size(X,2)
         X = X'
     end
-    scatter(X[x,:],X[y,:]; kwargs...)
+    scatter(X[x,:],X[y,:]; label="", kwargs...)
 end
 function scatter2!(X, x=1, y=2; kwargs...)
     if size(X,1) > size(X,2)
         X = X'
     end
-    scatter!(X[x,:],X[y,:]; kwargs...)
+    scatter!(X[x,:],X[y,:]; label="", kwargs...)
 end
 
 # encode labels to numbers
@@ -77,7 +77,8 @@ function jpairwise(fps)
         for j in i+1:length(fps)
             v = jaccard_distance(fps[i], fps[j])
             d[i,j] = v
+            d[j,i] = v
         end
     end
-    collect(Symmetric(d))
+    return d
 end
