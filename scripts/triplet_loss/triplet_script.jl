@@ -31,26 +31,30 @@ mb_provider = IterTools.repeatedly(minibatch, 100)
 
 # initialize optimizer, model, parameters
 opt = ADAM()
-model = triplet_mill_constructor(Xtrain, 32, relu, meanmax_aggregation, 2; odim = 10)
+model = triplet_mill_constructor(Xtrain, 32, relu, meanmax_aggregation, 3; odim = 10)
 ps = Flux.params(model)
 
 # try the loss function
-lossf(x, y) = loss(Triplet(3f0), SqEuclidean(), model(x), y)
+lossf(x, y) = loss(Triplet(), SqEuclidean(), model(x), y)
 lossf(batch...)
 
-# train for some max train time
-max_train_time = 60*10
+# train the model
+@epochs 100 Flux.train!(ps, mb_provider, opt) do x, y
+    loss(Triplet(), SqEuclidean(), model(x), y)
+end
+
+max_train_time = 120
 start_time = time()
 while time() - start_time < max_train_time
     Flux.train!(ps, mb_provider, opt) do x, y
-        lossf(x, y)
+        loss(Triplet(), SqEuclidean(), model(x), y)
     end
     @show lossf(batch...)
 end
 
 # create train/test encoding and plot it
 enc = model(Xtrain)
-scatter2(enc, zcolor=gvma.encode(ytrain, labelnames), color=:tab10)
+scatter2(enc, color=gvma.encode(ytrain, labelnames))
 savefig("encoding1.png")
 
 enc = model(Xtest)
@@ -59,12 +63,12 @@ savefig("encoding2.png")
 
 # create UMAP encoding from distance matrix and plot it
 Md = pairwise(SqEuclidean(), model(Xtrain))
-emb = umap(Md, 2, metric=:precomputed, n_neighbors=2)
+emb = umap(Md, 2, metric=:precomputed)
 scatter2(emb, color=color=gvma.encode(ytrain, labelnames))
 savefig("embedding1.png")
 
 Md2 = pairwise(SqEuclidean(), model(Xtest))
-emb2 = umap(Md2, 2, metric=:precomputed, n_neighbors=2)
+emb2 = umap(Md2, 2, metric=:precomputed)
 scatter2(emb2, color=color=gvma.encode(ytest, labelnames))
 savefig("embedding2.png")
 
