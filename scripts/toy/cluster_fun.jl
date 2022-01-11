@@ -74,10 +74,10 @@ function cluster_data(M, E, yl, k; type="train")
             :ri_medoids_test_emb => ve,
             :ri_hclust_test_dm => hmr,
             :ri_hclust_test_emb => her,
-            :slt_medoids_train_dm => slt_m,
-            :slt_medoids_train_emb => slt_e,
-            :slt_hclust_train_dm => hmslt,
-            :slt_hclust_train_emb => heslt
+            :slt_medoids_test_dm => slt_m,
+            :slt_medoids_test_emb => slt_e,
+            :slt_hclust_test_dm => hmslt,
+            :slt_hclust_test_emb => heslt
         )
         return test_results
     end

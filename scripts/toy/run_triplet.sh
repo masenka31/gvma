@@ -10,7 +10,7 @@ if [ ! -d "$LOG_DIR" ]; then
 	mkdir $LOG_DIR
 fi
 
-for seed in {1..10}
+for seed in {1..5}
 do
     for lambda in 30 60 90
     do
@@ -23,7 +23,7 @@ do
                     # submit to slurm
                     sbatch \
                     --output="${LOG_DIR}/seed=${seed}-%A_%a.out" \
-                    ./weighted.sh ${seed}
+                    ./triplet.sh ${seed} ${unq} ${n_classes} ${lambda} ${activation}
                 done
             done
         done

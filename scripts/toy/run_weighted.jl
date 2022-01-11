@@ -59,15 +59,16 @@ lossf(x, y) = ClusterLosses.loss(Triplet(), jwpairwise(x, instance2int, W), y)
 lossf(batch...)
 
 # training
-max_train_time = 60*120 # 2 hours
-start_time = time()
+max_train_time = 60*60*n_classes/10 # 4 hours as well
 
+start_time = time()
 while time() - start_time < max_train_time
     Flux.train!(ps, mb_provider, opt) do x, y
         lossf(x, y)
     end
     @show lossf(batch...)
 end
+@info "Training finished."
 
 ##################
 ### Evaluation ###
@@ -78,8 +79,8 @@ wm = WeightedJaccard(instance2int, W)
 jwpairwise(xun) = pairwise(wm, xun)
 
 # distance matrix for train and test data
-M_train = jwpairwise(xun)
-M_test = jwpairwise(xun_ts)
+@time M_train = jwpairwise(xun)
+@time M_test = jwpairwise(xun_ts)
 
 # umap embeddings for train and test data
 emb_train = umap(M_train, 2)
@@ -98,6 +99,7 @@ E_test = pairwise(Euclidean(), emb_test)
 df_train = cluster_data(M_train, E_train, ytrain; type="train")
 # test data
 df_test = cluster_data(M_test, E_test, ytest; type="test")
+@info "Results calculated."
 
 full_results = merge(
     df_train,
@@ -116,11 +118,11 @@ full_results = merge(
 
 using DataFrames
 df = DataFrame(full_results)
-df[:, Not([:code, :model, :opt])]
+# df[:, Not([:code, :model, :opt])]
 
 # save results
 sname = savename(
-    "weighted_jaccard",
+    "weighted",
     Dict(
         :seed => seed,
         :unique => unq,
@@ -130,4 +132,4 @@ sname = savename(
     ),
     "bson"
 )
-safesave(datadir("toy_problem", "weighted_jaccard", sname), full_results)
+safesave(datadir("toy", "weighted", sname), full_results)

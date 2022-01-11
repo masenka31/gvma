@@ -14,8 +14,6 @@ function (dist::SetJaccard)(x, y)
 end
 result_type(dist::SetJaccard, x, y) = Float32
 
-pairwise(SetJaccard(), xun[1:20])
-
 struct WeightedJaccard <: UnionMetric
     instance2int::Dict
     W::Vector
@@ -49,8 +47,8 @@ function (dist::WeightedJaccard)(x, y)
 end
 result_type(dist::WeightedJaccard, x, y) = Float32
 
-@time pairwise(WeightedJaccard(instance2int, W), xun)
-@time jwpairwise(xun, instance2int, W)
+# @time pairwise(WeightedJaccard(instance2int, W), xun)
+# @time jwpairwise(xun, instance2int, W)
 
 """
 This does not work since parameters od WeightedJaccard need to be mutable

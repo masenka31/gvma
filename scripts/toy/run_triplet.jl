@@ -13,7 +13,7 @@ seed = parse(Int64, ARGS[1])
 unq = parse(Bool, ARGS[2])
 n_classes = parse(Int64, ARGS[3])
 λ = parse(Int64, ARGS[4])
-activation = parse(String, ARGS[5])
+activation = ARGS[5]
 
 n_normal = n_classes - 10
 n_bags = n_classes * 50
@@ -61,15 +61,33 @@ ps = Flux.params(full_model)
 opt = ADAM()
 
 # train for some max train time
-max_train_time = 60*20 # 20 minutes should be fairly sufficient for this model
+max_train_time = 60*60*n_classes/10 # based on number of classes
+tr_loss = Inf
+best_model = deepcopy(full_model)
+patience = 20
+_patience = 0
 
 start_time = time()
 while time() - start_time < max_train_time
     Flux.train!(ps, mb_provider, opt) do x, y
         lossf(x, y)
     end
-    @show lossf(batch...)
+    l = lossf(Xtrain, ytrain) # does this take too long?
+    if l < tr_loss
+        global _patience = 0
+        global tr_loss = l
+        @show tr_loss
+        global best_model = deepcopy(full_model)
+    else
+        global _patience += 1
+    end
+    if _patience > patience
+        @info "Model has not improved for $_patience epochs."
+        break
+    end
 end
+@info "Training finished."
+full_model = deepcopy(best_model)
 
 ##################
 ### Evaluation ###
@@ -98,6 +116,7 @@ E_test = pairwise(Euclidean(), emb_test)
 df_train = cluster_data(M_train, E_train, ytrain; type="train")
 # test data
 df_test = cluster_data(M_test, E_test, ytest; type="test")
+@info "Results calculated."
 
 full_results = merge(
     df_train,
@@ -123,7 +142,7 @@ sname = savename(
     "triplet",
     Dict(
         :seed => seed,
-        :unique => inq,
+        :unique => unq,
         :n_classes => n_classes,
         :n_normal => n_normal,
         :λ => λ,
@@ -131,4 +150,4 @@ sname = savename(
     ),
     "bson"
 )
-safesave(datadir("toy_problem", "triplet", sname), full_results)
+safesave(datadir("toy", "triplet", sname), full_results)
