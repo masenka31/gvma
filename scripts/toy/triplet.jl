@@ -6,13 +6,15 @@ include(scriptsdir("toy", "src.jl"))
 ### Dictionary of terms
 seed = 1
 n_classes = 10
-n_normal = 3
-n_bags = 3000
-# data, labels, code = generate_mill_data(n_classes, n_bags; λ = 60, seed = seed)
-data, labels, code = generate_mill_unique(n_classes, n_bags; λ = 60, seed = seed)
+n_normal = 5
+n_bags = n_classes * 50
+λ = 60
+max_val = 1000
+data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
+data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
 
 # split data
-(Xtrain, ytrain), (Xtest, ytest) = train_test_split(data, labels, collect(n_normal+1:n_classes); seed = seed)
+(Xtrain, ytrain), (Xtest, ytest) = train_test_split(data, labels, collect(n_normal+1:n_classes); seed = seed, ratio = 0.5)
 
 ############################
 ### Discriminative model ###
@@ -77,7 +79,7 @@ batch = minibatch()
 
 # minibatch iterator
 using IterTools
-mb_provider = IterTools.repeatedly(minibatch, 100)
+mb_provider = IterTools.repeatedly(minibatch, 10)
 
 lossf(x, y) = ClusterLosses.loss(Triplet(3f0), SqEuclidean(), full_model(x), y)
 ps = Flux.params(full_model)

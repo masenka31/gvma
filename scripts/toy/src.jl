@@ -36,21 +36,21 @@ function get_obs(x)
     obs = map(i -> mpv[i]+1:mpv[i+1], 1:n)
 end
 
-function generate_mill_noise(class_code::Vector{Vector{T}}, λ) where T <: Number
-    space = [1:100,1:100]
+function generate_mill_noise(class_code::Vector{Vector{T}}, λ; max_val = 100) where T <: Number
+    space = [1:max_val,1:max_val]
     s = map(i -> sample.(space), 1:rand(Poisson(λ)))
     s = setdiff(s, class_code)
-    oh = map(x -> Flux.onehotbatch(x,1:100), s)
+    oh = map(x -> Flux.onehotbatch(x,1:max_val), s)
     an = cat(ArrayNode.(oh)...)
     bn = BagNode(an, map(i -> 2i-1:2i, 1:length(s)))
 end
 
-function generate_mill_noise(code_instances::Vector{T}, λ) where T <: Number
-    s = sample(1:100, rand(Poisson(λ))*2)
+function generate_mill_noise(code_instances::Vector{T}, λ; max_val = 100) where T <: Number
+    s = sample(1:max_val, rand(Poisson(λ))*2)
     s = setdiff(s, code_instances)
 
     while isempty(s)
-        s = sample(1:100, rand(Poisson(λ))*2)
+        s = sample(1:max_val, rand(Poisson(λ))*2)
         s = setdiff(s, code_instances)
     end
     
@@ -59,17 +59,17 @@ function generate_mill_noise(code_instances::Vector{T}, λ) where T <: Number
     end
 
     s2d = [[s[2i-1], s[2i]] for i in 1:length(s)÷2]
-    oh = map(x -> Flux.onehotbatch(x,1:100), s2d)
+    oh = map(x -> Flux.onehotbatch(x,1:max_val), s2d)
     an = cat(ArrayNode.(oh)...)
     bn = BagNode(an, map(i -> 2i-1:2i, 1:length(s2d)))
 end
 
-function generate_mill_data(n_classes, n_bags; λ = 20, seed = nothing)
+function generate_mill_data(n_classes, n_bags; λ = 20, seed = nothing, max_val = 100)
     # class code can be fixed with a seed, noise cannot
     # set seed
     (seed == nothing) ? nothing : Random.seed!(seed)
 
-    space = [1:100,1:100]
+    space = [1:max_val,1:max_val]
     class_code = [sample.(space) for _ in 1:n_classes]
 
     # reset seed
@@ -79,9 +79,9 @@ function generate_mill_data(n_classes, n_bags; λ = 20, seed = nothing)
     labels = Int[]
 
     for i in 1:n_bags
-        ns = generate_mill_noise(class_code, λ)
+        ns = generate_mill_noise(class_code, λ; max_val = max_val)
         ix = sample(1:n_classes)
-        oh_code = Flux.onehotbatch(class_code[ix], 1:100)
+        oh_code = Flux.onehotbatch(class_code[ix], 1:max_val)
         bn_code = BagNode(ArrayNode(oh_code), [1:2])
         push!(data, cat(ns, bn_code))
         
@@ -91,12 +91,12 @@ function generate_mill_data(n_classes, n_bags; λ = 20, seed = nothing)
 end
 
 
-function generate_mill_unique(n_classes, n_bags; λ = 20, seed = nothing)
+function generate_mill_unique(n_classes, n_bags; λ = 20, seed = nothing, max_val = 100)
     # class code can be fixed with a seed, noise cannot
     # set seed
     (seed == nothing) ? nothing : Random.seed!(seed)
 
-    code_instances = sample(1:100, n_classes*2, replace=false)
+    code_instances = sample(1:max_val, n_classes*2, replace=false)
     class_code = [[code_instances[2i-1], code_instances[2i]] for i in 1:length(code_instances)÷2]
 
     # reset seed
@@ -106,9 +106,9 @@ function generate_mill_unique(n_classes, n_bags; λ = 20, seed = nothing)
     labels = Int[]
 
     for i in 1:n_bags
-        ns = generate_mill_noise(code_instances, λ)
+        ns = generate_mill_noise(code_instances, λ, max_val = max_val)
         ix = sample(1:n_classes)
-        oh_code = Flux.onehotbatch(class_code[ix], 1:100)
+        oh_code = Flux.onehotbatch(class_code[ix], 1:max_val)
         bn_code = BagNode(ArrayNode(oh_code), [1:2])
         push!(data, cat(ns, bn_code))
         
@@ -126,6 +126,19 @@ function unpack(X)
     x1 = map(i -> X[i].data, 1:nobs(X))
     x2 = map(x -> x.data.data, x1)
     x3 = map(bag -> map(i -> bag[:, 2i-1:2i], 1:size(bag,2)÷2), x2)
+end
+
+"""
+    unpack2int(X, max_val)
+
+Unpacks a BagNode{BagNode{ArrayNode}} structure to vector of vectors
+and transforms OneHot matrices back to integers (OneCold).
+"""
+function unpack2int(X, max_val)
+    x1 = map(i -> X[i].data, 1:nobs(X))
+    x2 = map(x -> x.data.data, x1)
+    x3 = map(bag -> map(i -> bag[:, 2i-1:2i], 1:size(bag,2)÷2), x2)
+    x4 = map(a -> map(b -> Flux.onecold(b, 1:max_val), a), x3)
 end
 
 #########################

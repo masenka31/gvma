@@ -17,12 +17,13 @@ activation = ARGS[5]
 
 n_normal = n_classes - 10
 n_bags = n_classes * 50
+max_val = 1000
 
 # whether to use all unique code or not
 if unq
-    data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed)
+    data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
 else
-    data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed)
+    data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
 end
 
 # split data
@@ -150,4 +151,4 @@ sname = savename(
     ),
     "bson"
 )
-safesave(datadir("toy", "triplet", sname), full_results)
+safesave(datadir("toy_max=1000", "triplet", sname), full_results)

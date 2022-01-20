@@ -10,14 +10,17 @@ n_classes = 10
 n_normal = 5
 n_bags = n_classes * 50
 λ = 60
-data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed)
-data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed)
+max_val = 1000
+data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
+data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
 
 # split data
 (Xtrain, ytrain), (Xtest, ytest) = train_test_split(data, labels, collect(n_normal+1:n_classes); seed = seed, ratio = 0.5)
 # unpack the Mill data
 xun = unpack(Xtrain);
 xun_ts = unpack(Xtest);
+xun = unpack2int(Xtrain, max_val);
+xun_ts = unpack2int(Xtest, max_val);
 length(xun)
 length(xun_ts)
 
@@ -42,7 +45,7 @@ opt = ADAM(0.005)
 lossf(x, y) = ClusterLosses.loss(Triplet(), jwpairwise(x, instance2int, W), y)
 lossf(batch...)
 
-@epochs 100 begin
+@epochs 10 begin
     Flux.train!(ps, mb_provider, opt) do x, y
         lossf(x, y)
     end
@@ -55,7 +58,8 @@ min_key = findmin(c)[2]
 weight_model(max_key, W, instance2int)
 weight_model(min_key, W, instance2int)
 
-code_onehot = map(x -> Flux.onehotbatch(x, 1:100), code)
+code_onehot = map(x -> Flux.onehotbatch(x, 1:max_val), code)
+map(c -> weight_model(c, W, instance2int), code)
 map(c -> weight_model(c, W, instance2int), code_onehot)
 
 ######################################
@@ -96,8 +100,8 @@ jwpairwise(xun) = pairwise(wm, xun)
 @time M_test = jwpairwise(xun_ts)
 
 # umap embeddings for train and test data
-emb_train = umap(M_train, 2)
-emb_test = umap(M_test, 2)
+emb_train = umap(M_train, 2, n_neighbors=10)
+emb_test = umap(M_test, 2, n_neighbors=10)
 
 # distance matrix for umap embeddings
 E_train = pairwise(Euclidean(), emb_train)

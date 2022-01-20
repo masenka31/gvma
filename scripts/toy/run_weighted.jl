@@ -17,20 +17,21 @@ n_classes = parse(Int64, ARGS[3])
 
 n_normal = n_classes - 10
 n_bags = n_classes * 50
+max_val = 1000
 
 # whether to use all unique code or not
 if unq
-    data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed)
+    data, labels, code = generate_mill_unique(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
 else
-    data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed)
+    data, labels, code = generate_mill_data(n_classes, n_bags; λ = λ, seed = seed, max_val = max_val)
 end
 
 # split data
 (Xtrain, ytrain), (Xtest, ytest) = train_test_split(data, labels, collect(n_normal+1:n_classes); seed = seed, ratio = 0.5)
 
 # unpack the Mill data
-xun = unpack(Xtrain);
-xun_ts = unpack(Xtest);
+xun = unpack2int(Xtrain, max_val);
+xun_ts = unpack2int(Xtest, max_val);
 
 # create the dictionary
 instance_dict = unique(vcat(xun...))
@@ -132,4 +133,4 @@ sname = savename(
     ),
     "bson"
 )
-safesave(datadir("toy", "weighted", sname), full_results)
+safesave(datadir("toy_max=1000", "weighted", sname), full_results)
