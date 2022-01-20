@@ -47,15 +47,32 @@ cols = ["ri_hclust_test_dm", "ri_hclust_test_emb",
     "ri_medoids_test_dm", "ri_medoids_test_emb"
 ]
 
-@df pivot(cdf, cols) groupedboxplot(:λ, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+
+# filter true
+filt_df = filter(:unq => x -> x == true, df)
+
+@df pivot(filt_df, cols) groupedboxplot(:λ, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
                     xlabel="λ", ylabel="RandIndex", title="Test data results", titlefontsize=10,
                     label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
-savefig("triplet_box_test_lambda.png")
+savefig("triplet_box_test_lambda_unq=true.png")
 
-@df pivot(cdf, cols) groupedboxplot(:n_classes, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+@df pivot(filt_df, cols) groupedboxplot(:n_classes, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
                     xlabel="n classes", ylabel="RandIndex", title="Test data results", titlefontsize=10,
                     label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
-savefig("triplet_box_test_classes.png")
+savefig("triplet_box_test_classes_unq=true.png")
+
+# filter false
+filt_df = filter(:unq => x -> x == false, df)
+
+@df pivot(filt_df, cols) groupedboxplot(:λ, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+                    xlabel="λ", ylabel="RandIndex", title="Test data results", titlefontsize=10,
+                    label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
+savefig("triplet_box_test_lambda_unq=false.png")
+
+@df pivot(filt_df, cols) groupedboxplot(:n_classes, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+                    xlabel="n classes", ylabel="RandIndex", title="Test data results", titlefontsize=10,
+                    label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
+savefig("triplet_box_test_classes_unq=false.png")
 
 ################################
 ######### Weight Model #########
@@ -77,15 +94,33 @@ cols = ["ri_hclust_test_dm", "ri_hclust_test_emb",
     "ri_medoids_test_dm", "ri_medoids_test_emb"
 ]
 
-@df pivot(cdf, cols) groupedboxplot(:λ, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+# filter true
+filt_df = filter(:unq => x -> x == true, df)
+
+@df pivot(filt_df, cols) groupedboxplot(:λ, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
                     xlabel="λ", ylabel="RandIndex", title="Test data results", titlefontsize=10,
                     label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
-savefig("box_test_lambda.png")
+savefig("box_test_lambda_unq=true.png")
 
-@df pivot(cdf, cols) groupedboxplot(:n_classes, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+@df pivot(filt_df, cols) groupedboxplot(:n_classes, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
                     xlabel="n classes", ylabel="RandIndex", title="Test data results", titlefontsize=10,
                     label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
-savefig("box_test_classes.png")
+savefig("box_test_classes_unq=true.png")
+
+# filter false
+filt_df = filter(:unq => x -> x == false, df)
+
+@df pivot(filt_df, cols) groupedboxplot(:λ, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+                    xlabel="λ", ylabel="RandIndex", title="Test data results", titlefontsize=10,
+                    label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
+savefig("box_test_lambda_unq=false.png")
+
+@df pivot(filt_df, cols) groupedboxplot(:n_classes, :value, group=:name, legend=:bottomleft, ylims=(0,1.05),
+                    xlabel="n classes", ylabel="RandIndex", title="Test data results", titlefontsize=10,
+                    label=["HClust (DM)" "HClust (UMAP)" "k-medoids (DM)" "k-medoids (UMAP)"])
+savefig("box_test_classes_unq=false.png")
+
+
 
 """
     pivot(df, cols::Vector{T}; whichcols = nothing, newname = :name, newvalue = :value) where T <: Union{Symbol, String}
@@ -115,3 +150,8 @@ function pivot(df, cols::Vector{T}; whichcols = nothing, newname = :name, newval
     new_df = vcat([df for _ in 1:n]...)
     hcat(new_df, new_col)
 end
+
+
+
+pretty_table(cdf_triplet, nosubheader=true, crop=:none, body_hlines = collect(3:3:1000))
+pretty_table(cdf_weight, nosubheader=true, crop=:none, body_hlines = collect(3:3:1000))
