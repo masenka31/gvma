@@ -17,7 +17,7 @@ activation = ARGS[5]
 
 n_normal = n_classes - 10
 n_bags = n_classes * 50
-max_val = 1000
+max_val = 10000
 
 # whether to use all unique code or not
 if unq
@@ -65,7 +65,7 @@ opt = ADAM()
 max_train_time = 60*60*n_classes/10 # based on number of classes
 tr_loss = Inf
 best_model = deepcopy(full_model)
-patience = 20
+patience = 100
 _patience = 0
 
 start_time = time()
@@ -151,4 +151,4 @@ sname = savename(
     ),
     "bson"
 )
-safesave(datadir("toy_max=1000", "triplet", sname), full_results)
+safesave(datadir("toy_max=$max_val", "triplet", sname), full_results)

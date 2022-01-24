@@ -4,7 +4,7 @@
 # 	./run.sh
 # Run from this folder only.
 
-LOG_DIR="${HOME}/logs/gvma/toy_problem/triplet"
+LOG_DIR="${HOME}/logs/gvma/toy_problem/jaccard"
 
 if [ ! -d "$LOG_DIR" ]; then
 	mkdir $LOG_DIR
@@ -18,13 +18,10 @@ do
         do
             for unq in 0 1
             do
-                for activation in swish relu
-                do
-                    # submit to slurm
-                    sbatch \
-                    --output="${LOG_DIR}/seed=${seed}-%A_%a.out" \
-                    ./triplet.sh ${seed} ${unq} ${n_classes} ${lambda} ${activation}
-                done
+                # submit to slurm
+                sbatch \
+                --output="${LOG_DIR}/seed=${seed}-%A_%a.out" \
+                ./jaccard.sh ${seed} ${unq} ${n_classes} ${lambda}
             done
         done
     done

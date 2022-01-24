@@ -7,11 +7,98 @@ include(scriptsdir("toy", "jaccard_metric.jl"))
 
 using DataFrames
 using DataFrames: groupby
+using PrettyTables
 
 using Plots, StatsPlots
 ENV["GKSwstype"] = "100"
 
-df_triplet = collect_results(datadir("toy", "triplet"))
+
+"""
+    function generate_results(type::String="weighted", folder::String="toy_max=1000"; pretty = true)
+
+Generates a results table for the toy problem.
+"""
+function generate_results(type::String="weighted", folder::String="toy_max=1000"; pretty = true)
+    if type=="weighted"
+        df_weighted = collect_results(datadir("toy_max=1000", "weighted"))
+        df = df_weighted[:, Not([:opt, :model, :code, :path])]
+        gdf = groupby(df, [:λ, :n_classes, :unq])
+    elseif type=="triplet"
+        _df = collect_results(datadir(folder, "triplet"))
+        df = _df[:, Not([:opt, :model, :code, :path])]
+        gdf = groupby(df, [:λ, :n_classes, :unq, :activation])
+    elseif type=="jaccard"
+        _df = collect_results(datadir(folder, "jaccard"))
+        df = _df[:, Not([:code, :path])]
+        gdf = groupby(df, [:λ, :n_classes, :unq])
+    else
+        println("This type is not supported.")
+        return
+    end
+
+    metrics = ["ri_hclust_test_dm", "ri_hclust_test_emb", "ri_medoids_test_dm", "ri_medoids_test_emb",
+               "ri_hclust_train_dm", "ri_hclust_train_emb", "ri_medoids_train_dm", "ri_medoids_train_emb"]
+               
+    if type=="triplet"
+        new_names = ["λ", "n_classes", "unq", "activation",
+        "hclust_test_dm", "hclust_test_emb", "medoids_test_dm", "medoids_test_emb",
+        "hclust_train_dm", "hclust_train_emb", "medoids_train_dm", "medoids_train_emb"]
+    elseif type=="weighted" || type=="jaccard"
+        new_names = ["λ", "n_classes", "unq",
+        "hclust_test_dm", "hclust_test_emb", "medoids_test_dm", "medoids_test_emb",
+        "hclust_train_dm", "hclust_train_emb", "medoids_train_dm", "medoids_train_emb"]
+    end
+    
+    cdf = combine(gdf, metrics .=> mean, renamecols=false)
+    rename!(cdf, new_names)
+
+    if pretty
+        return pretty_table(cdf, nosubheader=true, crop=:none, body_hlines = collect(3:3:1000))
+    else
+        return cdf
+    end
+end
+
+# results for triplet
+table_triplet = generate_results("triplet", pretty=false)
+df_relu = filter(:activation => x -> x == "relu", table_triplet)
+df_swish = filter(:activation => x -> x == "swish", table_triplet)
+pretty_table(
+    df_relu, nosubheader=true, crop=:none,# tf=tf_markdown,
+    body_hlines = collect(3:3:1000),
+    formatters = ft_printf("%5.3f", 5:12)
+)
+
+pretty_table(
+    df_swish, nosubheader=true, crop=:none,# tf=tf_markdown,
+    body_hlines = collect(3:3:1000),
+    formatters = ft_printf("%5.3f", 5:12)
+)
+
+# results for weighted Jaccard model
+
+table_weighted = generate_results("weighted", pretty=false)
+sort!(table_weighted, [:n_classes, :unq, :λ])
+pretty_table(
+    table_weighted, nosubheader=true, crop=:none,
+    body_hlines = collect(3:3:1000),
+    formatters = ft_printf("%5.3f", 4:11)
+)
+
+# results for simple Jaccard
+table_jaccard = generate_results("jaccard", "toy_max=1000", pretty=false)
+pretty_table(
+    table_jaccard, nosubheader=true, crop=:none,
+    body_hlines = collect(3:3:1000),
+    formatters = ft_printf("%5.3f", 4:11)
+)
+
+###################################################
+############## Old results gathering ##############
+###################################################
+
+# df_triplet = collect_results(datadir("toy", "triplet"))
+df_triplet = collect_results(datadir("toy_max=1000", "triplet"))
 # println(names(df_triplet))
 df = df_triplet[:, Not([:opt, :model, :code, :path])]
 
@@ -35,9 +122,11 @@ metrics = ["ri_hclust_test_dm", "ri_medoids_train_emb", "ri_hclust_test_emb",
 
 sort!(metrics)
 cdf = combine(gdf, metrics .=> mean, renamecols=false)
+# cdf = combine(gdf, metrics .=> mean)
 
 gdf_un = groupby(cdf, :unq)
 cdf_un = combine(gdf_un, metrics .=> mean, renamecols=false)
+# cdf_un = combine(gdf_un, metrics .=> mean)
 
 using PrettyTables
 pretty_table(cdf, nosubheader=true, crop=:none, body_hlines = collect(3:3:1000))
@@ -78,7 +167,8 @@ savefig("triplet_box_test_classes_unq=false.png")
 ######### Weight Model #########
 ################################
 
-df_weighted = collect_results(datadir("toy", "weighted"))
+# df_weighted = collect_results(datadir("toy", "weighted"))
+df_weighted = collect_results(datadir("toy_max=1000", "weighted"))
 df = df_weighted[:, Not([:opt, :model, :code, :path])]
 gdf = groupby(df, [:λ, :n_classes, :unq])
 

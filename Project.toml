@@ -30,4 +30,5 @@ UMAP = "c4f8c510-2410-5be4-91d7-4fbaeb39457e"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-Flux = "0.11.3"
+Zygote = "0.5.17"
+DataFrames = "0.22"

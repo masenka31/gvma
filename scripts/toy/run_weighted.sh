@@ -10,7 +10,7 @@ if [ ! -d "$LOG_DIR" ]; then
 	mkdir $LOG_DIR
 fi
 
-for seed in {1..5}
+for seed in {1..10}
 do
     for lambda in 30 60 90
     do
