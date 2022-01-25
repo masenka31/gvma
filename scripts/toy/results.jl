@@ -60,7 +60,7 @@ function generate_results(type::String="weighted", folder::String="toy_max=1000"
 end
 
 # results for triplet
-table_triplet = generate_results("triplet", pretty=false)
+table_triplet = generate_results("triplet", "toy_max=10000", pretty=false)
 df_relu = filter(:activation => x -> x == "relu", table_triplet)
 df_swish = filter(:activation => x -> x == "swish", table_triplet)
 pretty_table(
@@ -77,7 +77,7 @@ pretty_table(
 
 # results for weighted Jaccard model
 
-table_weighted = generate_results("weighted", pretty=false)
+table_weighted = generate_results("weighted", "toy_max=10000", pretty=false)
 sort!(table_weighted, [:n_classes, :unq, :λ])
 pretty_table(
     table_weighted, nosubheader=true, crop=:none,
