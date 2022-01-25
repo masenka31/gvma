@@ -79,3 +79,6 @@ function dist_knn(k, distance_matrix, ytrain, ytest)
     @info "Test accuracy: $(round(acc, digits=4))"
     y_predicted, acc
 end
+
+dist_matrix(M::AbstractMatrix, train::AbstractArray) = M[length(train)+1:size(M,2), 1:length(train)]
+dist_matrix(M::AbstractMatrix, train::AbstractNode) = M[nobs(train)+1:size(M,2), 1:nobs(train)]

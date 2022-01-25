@@ -1,1 +1,64 @@
-{}
+{
+    "julia.enableTelemetry": true,
+    "python.jediEnabled": false,
+    "python.linting.pylintEnabled": true,
+    "[dart]": {
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [
+            80
+        ],
+        "editor.selectionHighlight": false,
+        "editor.suggest.snippetsPreventQuickSuggestions": false,
+        "editor.suggestSelection": "first",
+        "editor.tabCompletion": "onlySnippets",
+        "editor.wordBasedSuggestions": false
+    },
+    "emulator.emulatorPathWindows": "C:\\Users\\masen\\AppData\\Local\\Android\\Sdk\\emulator\\",
+    "emulator.emulatorPath": "",
+    "editor.renderControlCharacters": true,
+    "python.defaultInterpreterPath": "C:\\Users\\masen\\Anaconda3",
+    "oracledevtools.bookmarkFileFolder": "C:\\Users\\masen\\Oracle\\oracle.oracledevtools",
+    "oracledevtools.connectionConfiguration.configFilesFolder": "C:\\Users\\masen\\Oracle\\network\\admin",
+    "oracledevtools.connectionConfiguration.walletFileFolder": "C:\\Users\\masen\\Oracle\\network\\admin",
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features"
+    },
+    "terminal.integrated.commandsToSkipShell": [
+        "language-julia.interrupt"
+    ],
+    "debug.internalConsoleOptions": "neverOpen",
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "remote.SSH.remotePlatform": {
+        "helios.fjfi.cvut.cz": "linux",
+        "login.rci.cvut.cz": "linux"
+    },
+    "terminal.integrated.profiles.windows": {
+        "/bin/bash (migrated)": {
+            "path": "/bin/bash",
+            "args": [
+                "--login"
+            ]
+        }
+    },
+    "julia.execution.codeInREPL": true,
+    "workbench.editorAssociations": {
+        "*.ipynb": "jupyter.notebook.ipynb"
+    },
+    "terminal.integrated.tabs.location": "left",
+    "julia.symbolCacheDownload": true,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "julia.executablePath": "C:\\Users\\masen\\AppData\\Local\\Programs\\Julia-1.6.3\\bin\\julia.exe",
+    "python.languageServer": "Microsoft",
+    "mssql.connections": [
+        {
+            "server": "{{put-server-name-here}}",
+            "database": "{{put-database-name-here}}",
+            "user": "{{put-username-here}}",
+            "password": "{{put-password-here}}"
+        }
+    ],
+    "git.ignoreLegacyWarning": true,
+    "explorer.sortOrder": "type",
+    "window.zoomLevel": -1
+}
