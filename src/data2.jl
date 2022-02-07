@@ -202,3 +202,35 @@ function train_test_split(X::AbstractNode, y::Vector, Xs::ProductNode, ys::Vecto
     (Xtrain, ytrain), (Xtest, ytest) = train_test_split(X, y; ratio=ratio, seed = seed)
     return (Xtrain, ytrain), (cat(Xtest, Xs), vcat(ytest, ys))
 end
+
+############################################
+##### Other train/test and data splits #####
+############################################
+
+function split_in_two(X::AbstractNode, y::Vector; k_known = 5, clean=false, seed=nothing)
+    # get rid of clean if clean == false
+    if clean
+        newX, newY = X, y
+    else
+        newX, newY = X[y .!= "clean"], y[y .!= "clean"]
+    end
+
+    labelnames = unique(newY)
+    n = length(labelnames)
+
+    ix = random_ix(n, seed)
+    known = labelnames[ix[1:k_known]]
+    unknown = labelnames[ix[k_known+1:end]]
+
+    #known = sample(labelnames, k_known, replace=false)
+    #unknown = setdiff(labelnames, known)
+
+    ix_known = map(x -> any(x .== known), newY)
+    ix_unknown = map(x -> any(x .== unknown), newY)
+
+    Xk, yk = newX[ix_known], newY[ix_known]
+    Xu, yu = newX[ix_unknown], newY[ix_unknown]
+
+    return (Xk, yk), (Xu, yu)
+end
+

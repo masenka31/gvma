@@ -1,3 +1,10 @@
+"""
+    scatter2(X, x=1, y=2; kwargs...)
+
+Plots a 2D scatterplot from a matrix of type (n_features, n_samples).
+Uses first 2 feature rows by default but different rows can be chosen
+with parameters `x, y`.
+"""
 function scatter2(X, x=1, y=2; kwargs...)
     if size(X,1) > size(X,2)
         X = X'
@@ -11,6 +18,26 @@ function scatter2!(X, x=1, y=2; kwargs...)
     scatter!(X[x,:],X[y,:]; label="", kwargs...)
 end
 
+"""
+    scatter3(X, x=1, y=2, z=3; kwargs...)
+
+Plots a 3D scatterplot from a matrix of type (n_features, n_samples).
+Uses first 3 feature rows by default but different rows can be chosen
+with parameters `x, y, z`.
+"""
+function scatter3(X, x=1, y=2, z=3; kwargs...)
+    if size(X,1) > size(X,2)
+        X = X'
+    end
+    scatter(X[x,:],X[y,:],X[z,:]; label="", kwargs...)
+end
+function scatter3!(X, x=1, y=2, z=3; kwargs...)
+    if size(X,1) > size(X,2)
+        X = X'
+    end
+    scatter!(X[x,:],X[y,:],X[z,:]; label="", kwargs...)
+end
+
 # encode labels to numbers
 function encode(labels::Vector, labelnames::Vector)
     num_labels = ones(Int, length(labels))
@@ -20,25 +47,15 @@ function encode(labels::Vector, labelnames::Vector)
     end
     return num_labels
 end
+encode(labels::Vector) = encode(labels, unique(labels))
 
 # encode labels to binary numbers
 encode(labels::Vector, missing_class::String) = Int.(labels .== missing_class)
 
-"""
-    jaccard_distance(d1::Vector, d2::Vector)
 
-Calculate the Jaccard distance between two vectors
-as number of points in intersetion divided by number
-of points in the union: d = # intersection / # union.
-"""
-function jaccard_distance(d1::Vector, d2::Vector)
-    #dif = length(setdiff(d1,d2))
-    int = length(intersect(d1,d2))
-    un = length(union(d1,d2))
-    return (un - int)/un
-end
-
+########################################
 ########### Flatten Jsons ##############
+########################################
 
 """
 Flattens a JSON.
@@ -64,6 +81,25 @@ function flatten_json(sample::Vector)
     end
 end
 flatten_json(sample) = [(sample,)]
+
+
+###########################################
+########### Jaccard distance ##############
+###########################################
+
+"""
+    jaccard_distance(d1::Vector, d2::Vector)
+
+Calculate the Jaccard distance between two vectors
+as number of points in intersetion divided by number
+of points in the union: d = # intersection / # union.
+"""
+function jaccard_distance(d1::Vector, d2::Vector)
+    #dif = length(setdiff(d1,d2))
+    int = length(intersect(d1,d2))
+    un = length(union(d1,d2))
+    return (un - int)/un
+end
 
 """
     jpairwise(fps)

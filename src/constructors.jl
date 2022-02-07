@@ -65,12 +65,16 @@ function triplet_mill_constructor(Xtrain, mdim, activation, aggregation, nlayers
         net = Dense(mdim, odim)
     elseif nlayers == 2
         net = Chain(Dense(mdim, mdim, activation), Dense(mdim, odim))
-    else
+    elseif nlayers == 3
         net = Chain(Dense(mdim, mdim, activation), Dense(mdim, mdim, activation), Dense(mdim, odim))
     end
 
     # connect the full model
-    full_model = Chain(m, Mill.data, net)
+    if nlayers == 0
+        full_model = Chain(m, Mill.data)
+    else
+        full_model = Chain(m, Mill.data, net)
+    end
 
     # reset seed
 	(seed !== nothing) ? Random.seed!() : nothing

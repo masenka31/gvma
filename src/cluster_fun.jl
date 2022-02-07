@@ -55,32 +55,51 @@ function cluster_data(M, E, yl, k; type="train")
     her = randindex(hE, y)[1]
     heslt = mean(silhouettes(hE, E))
 
-    # return dataframe based on type
-    if type == "train"
-        train_results = Dict(
-            :ri_medoids_train_dm => vm,
-            :ri_medoids_train_emb => ve,
-            :ri_hclust_train_dm => hmr,
-            :ri_hclust_train_emb => her,
-            :slt_medoids_train_dm => slt_m,
-            :slt_medoids_train_emb => slt_e,
-            :slt_hclust_train_dm => hmslt,
-            :slt_hclust_train_emb => heslt
-        )
-        return train_results
-    else
-        test_results = Dict(
-            :ri_medoids_test_dm => vm,
-            :ri_medoids_test_emb => ve,
-            :ri_hclust_test_dm => hmr,
-            :ri_hclust_test_emb => her,
-            :slt_medoids_test_dm => slt_m,
-            :slt_medoids_test_emb => slt_e,
-            :slt_hclust_test_dm => hmslt,
-            :slt_hclust_test_emb => heslt
-        )
-        return test_results
-    end
+    k = [
+        Symbol("ri_medoids_"*type*"_dm"),
+        Symbol("ri_medoids_"*type*"_emb"),
+        Symbol("ri_hclust_"*type*"_dm"),
+        Symbol("ri_hclust_"*type*"_emb"),
+        Symbol("slt_medoids_"*type*"_dm"),
+        Symbol("slt_medoids_"*type*"_emb"),
+        Symbol("slt_hclust_"*type*"_dm"),
+        Symbol("slt_hclust_"*type*"_emb")
+    ]
+    v = [vm, ve, hmr, her, slt_m, slt_e, hmslt, heslt]
+    return Dict(k .=> v)
 end
 
 cluster_data(M, E, y; type="train") = cluster_data(M, E, y, length(unique(y)); type = type)
+
+function cluster_data1(M, yl, k; type="train")
+    y = gvma.encode(yl, unique(yl))
+
+    # try k-medoids 10 times, choose the best using !silhouettes!
+    cM = kmedoids(M, k)
+    vm = randindex(cM, y)[1]
+    slt_m = mean(silhouettes(cM, M))
+    for i in 1:9
+        _cM = kmedoids(M, k)
+        _vm = randindex(_cM, y)[1]
+        _slt_m = mean(silhouettes(_cM, M))
+        if _slt_m > slt_m
+            vm = _vm
+            cM = _cM
+            slt_m = _slt_m
+        end
+    end
+
+    hM = cutree(hclust(M, linkage=:average), k=k)
+    hmr = randindex(hM, y)[1]
+    hmslt = mean(silhouettes(hM, M))
+
+    k = [
+        Symbol("ri_medoids_"*type*"_dm"),
+        Symbol("ri_hclust_"*type*"_dm"),
+        Symbol("slt_medoids_"*type*"_dm"),
+        Symbol("slt_hclust_"*type*"_dm"),
+    ]
+    v = [vm, hmr, slt_m, hmslt]
+    return Dict(k .=> v)
+end
+cluster_data1(M, y; type="train") = cluster_data1(M, y, length(unique(y)); type = type)
