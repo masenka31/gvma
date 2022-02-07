@@ -10,7 +10,7 @@ missing_class = ARGS[4]
 include(srcdir("init_strain.jl"))
 using Distances, Clustering
 using ClusterLosses
-using DataFrames
+using DataFrames: Not
 
 # divide to train/test data with the Jaccard matrix properly transformed, too
 (Xtrain, ytrain), (Xtest, ytest) = train_test_split(X, y, missing_class; ratio=ratio, seed=seed)
